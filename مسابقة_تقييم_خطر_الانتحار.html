@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مسابقة — تقييم خطر الانتحار</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&family=Amiri:wght@700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:     #1a1a2e;
+  --card:   #16213e;
+  --navy:   #0f3460;
+  --amber:  #e2b04a;
+  --amber2: #f5c842;
+  --green:  #2ecc71;
+  --red:    #e74c3c;
+  --blue:   #3498db;
+  --purple: #9b59b6;
+  --teal:   #1abc9c;
+  --orange: #e67e22;
+  --white:  #ffffff;
+  --gray:   #8892a0;
+
+  /* answer colors (Kahoot palette) */
+  --a: #e21b3c;
+  --b: #1368ce;
+  --c: #26890c;
+  --d: #ffa602;
+}
+
+body {
+  font-family: 'Tajawal', sans-serif;
+  background: var(--bg);
+  min-height: 100vh;
+  overflow-x: hidden;
+  color: var(--white);
+}
+
+/* ── PARTICLES BG ── */
+.particles { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+.particle {
+  position: absolute; border-radius: 50%;
+  animation: float linear infinite;
+  opacity: 0.12;
+}
+@keyframes float {
+  from { transform: translateY(100vh) rotate(0deg); }
+  to   { transform: translateY(-100px) rotate(360deg); }
+}
+
+/* ── SCREENS ── */
+.screen { position: relative; z-index: 1; min-height: 100vh; display: none; }
+.screen.active { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.5rem; }
+
+/* ── INTRO ── */
+#intro {
+  background: radial-gradient(ellipse at 30% 20%, rgba(226,176,74,0.15), transparent 60%),
+              radial-gradient(ellipse at 70% 80%, rgba(52,152,219,0.12), transparent 60%),
+              var(--bg);
+  text-align: center;
+}
+.logo-ring {
+  width: 110px; height: 110px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--amber), var(--orange));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2.8rem; margin: 0 auto 1.4rem;
+  box-shadow: 0 0 60px rgba(226,176,74,0.4);
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+.intro-title {
+  font-family: 'Amiri', serif;
+  font-size: clamp(1.6rem, 4vw, 2.6rem);
+  color: var(--amber2);
+  margin-bottom: 0.4rem;
+  text-shadow: 0 0 30px rgba(226,176,74,0.4);
+}
+.intro-sub { font-size: 1rem; color: var(--gray); margin-bottom: 0.3rem; }
+.intro-count {
+  display: inline-block;
+  background: rgba(226,176,74,0.15);
+  border: 1px solid rgba(226,176,74,0.3);
+  color: var(--amber);
+  font-size: 14px; font-weight: 700;
+  padding: 4px 14px; border-radius: 20px; margin-bottom: 2rem;
+}
+.intro-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 0.7rem; max-width: 420px; margin: 0 auto 2rem; width: 100%;
+}
+.ig-card {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px; padding: 0.7rem 0.9rem;
+  font-size: 13px; color: var(--gray);
+  display: flex; gap: 0.5rem; align-items: center;
+}
+.ig-icon { font-size: 1.2rem; }
+.btn-start {
+  background: linear-gradient(135deg, var(--amber), var(--orange));
+  border: none; border-radius: 50px;
+  color: var(--bg); font-family: 'Tajawal', sans-serif;
+  font-size: 1.15rem; font-weight: 900;
+  padding: 0.85rem 3rem; cursor: pointer;
+  box-shadow: 0 8px 32px rgba(226,176,74,0.35);
+  transition: all 0.2s; letter-spacing: 0.5px;
+}
+.btn-start:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 12px 40px rgba(226,176,74,0.45); }
+.btn-start:active { transform: scale(0.98); }
+
+/* ── COUNTDOWN ── */
+#countdown {
+  background: var(--bg);
+  text-align: center;
+}
+.cd-num {
+  font-family: 'Amiri', serif;
+  font-size: clamp(6rem, 20vw, 10rem);
+  color: var(--amber2);
+  line-height: 1;
+  text-shadow: 0 0 80px rgba(226,176,74,0.5);
+  animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+@keyframes popIn { from { transform: scale(0.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.cd-label { font-size: 1.1rem; color: var(--gray); margin-top: 0.5rem; }
+
+/* ── QUIZ ── */
+#quiz {
+  background: radial-gradient(ellipse at 20% 10%, rgba(52,152,219,0.08), transparent 50%),
+              radial-gradient(ellipse at 80% 90%, rgba(155,89,182,0.08), transparent 50%),
+              var(--bg);
+  padding: 0;
+  justify-content: flex-start;
+  align-items: stretch;
+}
+
+/* Top bar */
+.top-bar {
+  background: rgba(255,255,255,0.04);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  padding: 0.7rem 1.2rem;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 10;
+}
+.q-progress {
+  font-size: 12px; color: var(--gray);
+  display: flex; align-items: center; gap: 0.5rem;
+}
+.q-dots { display: flex; gap: 3px; }
+.q-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: rgba(255,255,255,0.15);
+  transition: background 0.3s;
+}
+.q-dot.done { background: var(--green); }
+.q-dot.current { background: var(--amber2); }
+.score-badge {
+  background: rgba(226,176,74,0.15);
+  border: 1px solid rgba(226,176,74,0.3);
+  color: var(--amber2); font-size: 13px; font-weight: 700;
+  padding: 4px 12px; border-radius: 20px;
+  transition: all 0.3s;
+}
+.score-badge.bump { animation: scoreBump 0.4s ease; }
+@keyframes scoreBump { 0%,100% { transform: scale(1); } 50% { transform: scale(1.2); } }
+
+/* Timer */
+.timer-wrap {
+  display: flex; align-items: center; justify-content: center;
+  gap: 0.5rem; padding: 0.5rem;
+}
+.timer-num {
+  font-family: 'Amiri', serif;
+  font-size: 1.5rem; font-weight: 700;
+  min-width: 32px; text-align: center;
+  transition: color 0.3s;
+}
+.timer-ring {
+  width: 48px; height: 48px; transform: rotate(-90deg);
+}
+.timer-ring circle { fill: none; stroke-width: 4; }
+.timer-bg { stroke: rgba(255,255,255,0.1); }
+.timer-fg { stroke: var(--amber2); stroke-linecap: round; transition: stroke-dashoffset 1s linear, stroke 0.5s; }
+
+/* Question card */
+.q-main { flex: 1; padding: 1rem 1.2rem 0.6rem; display: flex; flex-direction: column; }
+.q-num-tag {
+  font-size: 11px; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--amber);
+  margin-bottom: 0.5rem;
+}
+.q-card {
+  background: linear-gradient(135deg, rgba(15,52,96,0.8), rgba(22,33,62,0.9));
+  border: 1px solid rgba(226,176,74,0.2);
+  border-radius: 16px; padding: 1.1rem 1.3rem;
+  margin-bottom: 1rem; position: relative; overflow: hidden;
+  flex-shrink: 0;
+}
+.q-card::before {
+  content: ''; position: absolute;
+  top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, var(--amber), var(--orange), var(--amber2));
+}
+.q-text {
+  font-size: clamp(1rem, 2.5vw, 1.25rem);
+  font-weight: 700; color: var(--white);
+  line-height: 1.5;
+}
+
+/* Answers grid */
+.answers-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 0.6rem; flex: 1;
+}
+.ans-btn {
+  border: none; border-radius: 14px;
+  padding: 0.8rem 1rem;
+  font-family: 'Tajawal', sans-serif;
+  font-size: clamp(0.88rem, 2vw, 1.05rem);
+  font-weight: 700; color: var(--white);
+  cursor: pointer;
+  display: flex; align-items: center; gap: 0.6rem;
+  text-align: right; line-height: 1.4;
+  transition: all 0.15s;
+  position: relative; overflow: hidden;
+  min-height: 70px;
+}
+.ans-btn::before {
+  content: ''; position: absolute; inset: 0;
+  background: rgba(255,255,255,0.1);
+  opacity: 0; transition: opacity 0.15s;
+}
+.ans-btn:hover::before { opacity: 1; }
+.ans-btn:active { transform: scale(0.97); }
+.ans-btn .shape {
+  width: 36px; height: 36px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.2rem; font-weight: 900;
+  background: rgba(0,0,0,0.25);
+  flex-shrink: 0;
+}
+.ans-btn .ans-text { flex: 1; }
+
+.btn-a { background: linear-gradient(135deg, #c0392b, var(--a)); }
+.btn-b { background: linear-gradient(135deg, #1a56b0, var(--b)); }
+.btn-c { background: linear-gradient(135deg, #1e7e0c, var(--c)); }
+.btn-d { background: linear-gradient(135deg, #e08500, var(--d)); }
+
+.ans-btn.correct {
+  animation: correctPop 0.5s ease;
+  filter: brightness(1.15);
+  box-shadow: 0 0 30px rgba(46,204,113,0.5);
+}
+.ans-btn.wrong {
+  filter: brightness(0.4) grayscale(0.5);
+}
+.ans-btn.reveal-correct {
+  animation: correctPop 0.5s ease;
+  box-shadow: 0 0 30px rgba(46,204,113,0.5);
+  filter: brightness(1.15);
+}
+@keyframes correctPop {
+  0%   { transform: scale(1); }
+  30%  { transform: scale(1.06); }
+  60%  { transform: scale(0.97); }
+  100% { transform: scale(1); }
+}
+
+/* Result overlay */
+.result-overlay {
+  position: fixed; inset: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(8px);
+  animation: fadeIn 0.3s ease;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.result-card {
+  background: var(--card); border-radius: 24px;
+  padding: 2rem 2.5rem; text-align: center;
+  max-width: 360px; width: 90%;
+  border: 1px solid rgba(255,255,255,0.1);
+  animation: slideUp 0.35s cubic-bezier(0.175,0.885,0.32,1.275);
+}
+@keyframes slideUp { from { transform: translateY(40px) scale(0.9); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
+.result-emoji { font-size: 3.5rem; margin-bottom: 0.5rem; display: block; }
+.result-label { font-size: 1.5rem; font-weight: 900; margin-bottom: 0.3rem; }
+.result-points {
+  font-size: 1.1rem; color: var(--amber2); margin-bottom: 0.8rem;
+}
+.result-explain {
+  font-size: 13px; color: var(--gray); line-height: 1.6;
+  margin-bottom: 1.2rem; text-align: right;
+  background: rgba(255,255,255,0.04); border-radius: 10px;
+  padding: 0.7rem 0.9rem;
+}
+.result-explain strong { color: var(--amber2); display: block; margin-bottom: 4px; }
+.btn-next {
+  background: linear-gradient(135deg, var(--amber), var(--orange));
+  border: none; border-radius: 40px; width: 100%;
+  color: var(--bg); font-family: 'Tajawal', sans-serif;
+  font-size: 1rem; font-weight: 900; padding: 0.8rem;
+  cursor: pointer; transition: all 0.2s;
+}
+.btn-next:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(226,176,74,0.35); }
+
+/* ── FINAL ── */
+#final {
+  background: radial-gradient(ellipse at center, rgba(226,176,74,0.15), transparent 70%), var(--bg);
+  text-align: center;
+}
+.final-trophy { font-size: 5rem; margin-bottom: 0.8rem; animation: spin 1s ease-out; }
+@keyframes spin { from { transform: rotate(-30deg) scale(0); } to { transform: rotate(0) scale(1); } }
+.final-title { font-family: 'Amiri', serif; font-size: 2.2rem; color: var(--amber2); margin-bottom: 0.4rem; }
+.final-score {
+  font-size: 4rem; font-weight: 900; color: var(--white);
+  text-shadow: 0 0 40px rgba(226,176,74,0.4); margin-bottom: 0.3rem;
+}
+.final-sub { font-size: 1rem; color: var(--gray); margin-bottom: 2rem; }
+.final-bars { max-width: 420px; margin: 0 auto 2rem; width: 100%; }
+.fb-row { display: flex; align-items: center; gap: 0.7rem; margin-bottom: 0.6rem; }
+.fb-label { font-size: 12px; color: var(--gray); min-width: 100px; text-align: right; }
+.fb-track { flex: 1; background: rgba(255,255,255,0.08); border-radius: 20px; height: 12px; overflow: hidden; }
+.fb-fill { height: 100%; border-radius: 20px; animation: growBar 1s ease-out; }
+@keyframes growBar { from { width: 0 !important; } }
+.fb-val { font-size: 12px; font-weight: 700; min-width: 30px; }
+.btn-restart {
+  background: transparent;
+  border: 2px solid var(--amber);
+  border-radius: 40px; color: var(--amber);
+  font-family: 'Tajawal', sans-serif;
+  font-size: 1rem; font-weight: 700;
+  padding: 0.7rem 2.5rem; cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-restart:hover { background: var(--amber); color: var(--bg); }
+
+/* Confetti */
+.confetti-piece {
+  position: fixed; top: -10px;
+  width: 10px; height: 10px;
+  border-radius: 2px;
+  animation: confettiFall linear forwards;
+  z-index: 100; pointer-events: none;
+}
+@keyframes confettiFall {
+  to { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+
+/* Hidden */
+.hidden { display: none !important; }
+
+/* mobile */
+@media (max-width: 500px) {
+  .answers-grid { grid-template-columns: 1fr; }
+  .ans-btn { min-height: 58px; }
+  .result-card { padding: 1.5rem 1.2rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- PARTICLES -->
+<div class="particles" id="particles"></div>
+
+<!-- ══ INTRO SCREEN ══ -->
+<div class="screen active" id="intro">
+  <div class="logo-ring">🧠</div>
+  <h1 class="intro-title">مسابقة تقييم خطر الانتحار</h1>
+  <p class="intro-sub">اختبر معرفتك السريرية</p>
+  <span class="intro-count">٢٥ سؤال</span>
+  <div class="intro-grid">
+    <div class="ig-card"><span class="ig-icon">⏱</span><span>٢٠ ثانية لكل سؤال</span></div>
+    <div class="ig-card"><span class="ig-icon">⭐</span><span>١٠٠٠ نقطة كحد أقصى</span></div>
+    <div class="ig-card"><span class="ig-icon">🚀</span><span>الإجابة السريعة = نقاط أكثر</span></div>
+    <div class="ig-card"><span class="ig-icon">📋</span><span>PSS-3 · SIS-MAP · التدخل</span></div>
+  </div>
+  <button class="btn-start" onclick="startCountdown()">ابدأ المسابقة</button>
+</div>
+
+<!-- ══ COUNTDOWN SCREEN ══ -->
+<div class="screen" id="countdown">
+  <div class="cd-num" id="cdNum">3</div>
+  <div class="cd-label">استعد…</div>
+</div>
+
+<!-- ══ QUIZ SCREEN ══ -->
+<div class="screen" id="quiz">
+
+  <!-- Top bar -->
+  <div class="top-bar">
+    <div class="q-progress">
+      <div class="q-dots" id="qDots"></div>
+    </div>
+    <div class="timer-wrap">
+      <svg class="timer-ring" viewBox="0 0 48 48">
+        <circle class="timer-bg" cx="24" cy="24" r="20"/>
+        <circle class="timer-fg" id="timerCircle" cx="24" cy="24" r="20"
+          stroke-dasharray="125.66" stroke-dashoffset="0"/>
+      </svg>
+      <div class="timer-num" id="timerNum">20</div>
+    </div>
+    <div class="score-badge" id="scoreBadge">0 نقطة</div>
+  </div>
+
+  <!-- Question -->
+  <div class="q-main">
+    <div class="q-num-tag" id="qNumTag">السؤال ١ من ٢٥</div>
+    <div class="q-card">
+      <div class="q-text" id="qText"></div>
+    </div>
+    <div class="answers-grid" id="answersGrid"></div>
+  </div>
+
+</div>
+
+<!-- ══ FINAL SCREEN ══ -->
+<div class="screen" id="final">
+  <div class="final-trophy">🏆</div>
+  <h1 class="final-title">انتهت المسابقة!</h1>
+  <div class="final-score" id="finalScore">0</div>
+  <div class="final-sub" id="finalSub"></div>
+  <div class="final-bars" id="finalBars"></div>
+  <button class="btn-restart" onclick="restart()">🔄 إعادة المسابقة</button>
+</div>
+
+<script>
+// ════════════════════════════════════════════════
+// DATA
+// ════════════════════════════════════════════════
+const QUESTIONS = [
+  {
+    q: "متى يستوجب السؤال الثالث في PSS-3 الانتقال فوراً لـ SIS-MAP؟",
+    opts: ["عند أي إجابة بنعم", "عند إجابة 'آخر ٦ أشهر' أو أقل", "عند إجابة 'منذ أكثر من سنة'", "لا يستوجب SIS-MAP أبداً"],
+    correct: 1,
+    explain: "الحد الزمني المحدد في بروتوكول وزارة الصحة هو آخر ٦ أشهر. ما قبل ذلك يُوثَّق لكن لا يوجب الانتقال الفوري."
+  },
+  {
+    q: "ما الدرجة التي تُشير لخطر مرتفع في مقياس SIS-MAP؟",
+    opts: ["أكثر من ٥", "أكثر من ٧", "٩ فأكثر", "١٢ فأكثر"],
+    correct: 2,
+    explain: "≤٦ منخفض · ٧–٨ متوسط · ≥٩ مرتفع. هذه هي حدود التصنيف المعتمدة في البروتوكول."
+  },
+  {
+    q: "هل يجوز إعادة صياغة أسئلة PSS-3 بلغة أبسط إذا لم يفهم المريض؟",
+    opts: ["نعم إذا كان المريض لا يفهم", "نعم بإذن المشرف", "لا — الصياغة الحرفية إلزامية", "نعم في حالة الطفل فقط"],
+    correct: 2,
+    explain: "الصياغة الحرفية المعتمدة من وزارة الصحة لا تُعدَّل. إذا لم يفهم المريض وثِّق 'غير قادر على الإكمال' وأبلِغ المشرف."
+  },
+  {
+    q: "في SIS-MAP: سؤال 'هل يمكنك التعامل مع الأفكار المؤلمة؟' — ماذا تعني الإجابة لا؟",
+    opts: ["درجة صفر — عامل حماية", "درجة واحد — يرفع الخطورة", "لا تُحتسب لأنها سلبية", "درجة واحد — يخفض الخطورة"],
+    correct: 1,
+    explain: "هذا السؤال معكوس التصحيح. 'لا' = لا يستطيع التعامل مع الأفكار = غياب آلية تكيّف = يرفع الخطورة = درجة ١."
+  },
+  {
+    q: "ما نوع المراقبة المطلوبة عند خطر متوسط (درجة ٧–٨)؟",
+    opts: ["Standard Observation", "Line of Sight", "One-to-One", "لا مراقبة خاصة"],
+    correct: 1,
+    explain: "Line of Sight = المريض في مرمى البصر دائماً مع توثيق كل ١٥ دقيقة. One-to-One للمرتفع فقط."
+  },
+  {
+    q: "الهدوء المفاجئ بعد فترة اضطراب حاد — ماذا يعني سريرياً؟",
+    opts: ["تحسّن في الحالة", "استجابة للعلاج", "علامة حمراء تستوجب التقييم فوراً", "لا يعني شيئاً بحد ذاته"],
+    correct: 2,
+    explain: "الهدوء المفاجئ قد يعني أن المريض اتخذ قراراً — الراحة التي يشعر بها هي راحة 'الحسم' لا التحسّن."
+  },
+  {
+    q: "كم عدد أقسام مقياس SIS-MAP؟",
+    opts: ["٥ أقسام", "٦ أقسام", "٧ أقسام", "٩ أقسام"],
+    correct: 2,
+    explain: "٧ أقسام: البيانات الشخصية · الأبعاد النفسية · الأمراض المصاحبة · التاريخ الأسري · عوامل الحماية · الإكلينيكي · النفسي الاجتماعي."
+  },
+  {
+    q: "ما أول خطوة فور ظهور نتيجة PSS-3 إيجابية؟",
+    opts: ["ملء نموذج SIS-MAP", "إبلاغ المشرف", "عدم ترك المريض وحده", "الاتصال بالأسرة"],
+    correct: 2,
+    explain: "القاعدة الأولى: لا تترك المريض وحده. ثم تأتي بقية الخطوات بالترتيب الصحيح."
+  },
+  {
+    q: "في خطة السلامة، ما الخطوة الأكثر فاعليةً علمياً في منع الانتحار؟",
+    opts: ["الخطوة ١ — إشارات التحذير", "الخطوة ٣ — أشخاص الدعم", "الخطوة ٥ — إزالة الوسائل المميتة", "الخطوة ٦ — أسباب الحياة"],
+    correct: 2,
+    explain: "إزالة الوسيلة تكسر سلسلة الفعل في أحرج اللحظات. هي الخطوة الأقوى علمياً وإلزامية في كل الحالات."
+  },
+  {
+    q: "معادلة مؤشر الخطورة في SIS-MAP هي:",
+    opts: ["مجموع جميع الأقسام", "مجموع (١+٢+٣+٤+٦+٧) ناقص (٥)", "مجموع الأقسام مقسوماً على ٧", "مجموع الأقسام مضافاً إليه القسم ٥"],
+    correct: 1,
+    explain: "القسم ٥ (عوامل الحماية) يُطرح من المجموع لأنه عامل وقاية. الحماية تُخفض الخطورة الفعلية."
+  },
+  {
+    q: "ماذا تعني نعم على السؤال الأول من PSS-3 فقط؟",
+    opts: ["خطر انتحاري — انتقل لـ SIS-MAP فوراً", "نتيجة إيجابية للاكتئاب — تقييم شامل", "نتيجة سلبية — متابعة روتينية", "لا قيمة لها وحدها"],
+    correct: 1,
+    explain: "السؤال الأول يفحص الاكتئاب فقط. إيجابيته تستوجب تقييماً شاملاً للاكتئاب لكن لا توجب SIS-MAP مباشرة."
+  },
+  {
+    q: "مريض منوم رفض الإجابة على PSS-3 — ما الخطوة الأولى؟",
+    opts: ["تأجيل التقييم للغد", "وثِّق الرفض وأبلِغ المشرف فوراً", "استمر حتى يوافق", "اعتبر النتيجة سلبية"],
+    correct: 1,
+    explain: "الرفض بحد ذاته معلومة سريرية مهمة. يُوثَّق فوراً ويُبلَّغ به المشرف. لا يعني نهاية التقييم."
+  },
+  {
+    q: "ما نوع المراقبة المطلوبة عند الخطر المرتفع (درجة ٩ فأكثر)؟",
+    opts: ["Standard Observation", "Line of Sight", "One-to-One", "المراقبة الأسرية فقط"],
+    correct: 2,
+    explain: "One-to-One = موظف بجانب المريض في نطاق ذراع في جميع الأوقات مع توثيق كل ١٥ دقيقة."
+  },
+  {
+    q: "كم خطوة تتضمن خطة السلامة وفق Stanley & Brown؟",
+    opts: ["٤ خطوات", "٥ خطوات", "٦ خطوات", "٨ خطوات"],
+    correct: 2,
+    explain: "الخطوات الست: إشارات التحذير · التكيّف الذاتي · أشخاص الدعم · المهنيون · إزالة الوسائل · أسباب الحياة."
+  },
+  {
+    q: "أيٌّ مما يلي يُعدّ علامة حمراء بغض النظر عن درجة SIS-MAP؟",
+    opts: ["الاكتئاب وحده دون أفكار", "وجود خطة واضحة مع وسيلة متاحة", "تاريخ انتحار في الأسرة", "رفض التقييم مرة واحدة"],
+    correct: 1,
+    explain: "خطة + وسيلة = مثلث الخطر المكتمل. يستوجب تدخلاً فورياً حتى لو كانت الدرجة منخفضة."
+  },
+  {
+    q: "ما القسم الذي تُطرح درجاته من المجموع النهائي في SIS-MAP؟",
+    opts: ["القسم ١ — البيانات الشخصية", "القسم ٣ — الأمراض المصاحبة", "القسم ٥ — عوامل الحماية", "القسم ٦ — التقييم الإكلينيكي"],
+    correct: 2,
+    explain: "القسم ٥ هو عوامل الحماية ويُطرح لأنها تُقلل الخطورة الفعلية. الحماية القوية تُغيّر الصورة الكاملة."
+  },
+  {
+    q: "مريض أفصح عن توزيعه ممتلكاته على أسرته مؤخراً — ما التصرف الصحيح؟",
+    opts: ["تقييم روتيني — ليس مؤشراً مباشراً", "طبِّق SIS-MAP فوراً", "أبلِغ الأسرة وأنهِ الجلسة", "طمئنه وحدِّد موعداً"],
+    correct: 1,
+    explain: "توزيع الممتلكات = سلوك وداع موثّق علمياً كعلامة خطر مرتفعة. يستوجب SIS-MAP فوراً بصرف النظر عن PSS-3."
+  },
+  {
+    q: "متى يجوز الإفصاح للأسرة دون موافقة المريض؟",
+    opts: ["لا يجوز مطلقاً", "عند الخطر المنخفض فقط", "عند الخطر الجسيم والوشيك على الحياة", "بقرار الأسرة وحدها"],
+    correct: 2,
+    explain: "الخطر الجسيم والوشيك يُسقط مبدأ السرية قانونياً وأخلاقياً. يُوثَّق قرار الإفصاح ومبرره في السجل."
+  },
+  {
+    q: "خطة السلامة يجب أن تُعدّ:",
+    opts: ["من قِبَل الأخصائي بناءً على خبرته", "مع المريض وبكلماته هو", "من قِبَل الأسرة بإشراف الأخصائي", "بصياغة موحدة للجميع"],
+    correct: 1,
+    explain: "الخطة مع المريض لا له. الكلمات يجب أن تكون كلمات المريض — الملكية النفسية هي ما تجعل الخطة فاعلة."
+  },
+  {
+    q: "مريض حصل على درجة ٦ لكن ذكر أن لديه خطة تفصيلية — ما القرار؟",
+    opts: ["درجة ٦ = منخفض — متابعة روتينية", "تجاهل الخطة لأن الدرجة منخفضة", "تصرّف كأن الخطر مرتفع", "أعِد المقياس لأن النتيجة خاطئة"],
+    correct: 2,
+    explain: "الدرجة تُوجِّه لا تحكم وحدها. وجود خطة تفصيلية يتجاوز الدرجة ويستوجب تدخلاً بمستوى الخطر المرتفع."
+  },
+  {
+    q: "ما الخطوة الإلزامية بعد تأكيد محاولة انتحارية سابقة في PSS-3؟",
+    opts: ["الانتقال لـ SIS-MAP مباشرة", "السؤال عن توقيت المحاولة الأخيرة", "إبلاغ الأسرة فوراً", "طلب استشارة الطبيب النفسي"],
+    correct: 1,
+    explain: "يجب السؤال عن التوقيت أولاً. إذا كانت المحاولة خلال آخر ٦ أشهر → SIS-MAP. إذا كانت أقدم → وثِّق وقدِّر."
+  },
+  {
+    q: "أي العناصر التالية إلزامي في التوثيق حتى عند النتيجة السلبية؟",
+    opts: ["نتيجة PSS-3 فقط", "نتيجة SIS-MAP فقط", "التوثيق الكامل إلزامي دائماً", "التوثيق اختياري عند السلبية"],
+    correct: 2,
+    explain: "التوثيق غير المكتمل يُعادل عدم التقييم قانونياً. حتى النتيجة السلبية تُوثَّق مع التاريخ والوقت."
+  },
+  {
+    q: "مريض قال 'أنا بخير' وبدا هادئاً — ما الخطوة الصحيحة؟",
+    opts: ["اقبل الإجابة وأنهِ الجلسة", "استكمل PSS-3 كاملاً وراقب السلوك غير اللفظي", "اعتبر النتيجة سلبية", "حدِّد موعداً دون تقييم"],
+    correct: 1,
+    explain: "الإجابة اللفظية جزء واحد من التقييم. المرضى يتعلمون ماذا يقولون. راقب التواصل البصري ونبرة الصوت وتلقائية الردود."
+  },
+  {
+    q: "ما حد الدرجة الذي يُشير لخطر متوسط في SIS-MAP؟",
+    opts: ["٥ – ٦", "٧ – ٨", "٨ – ١٠", "٦ – ٩"],
+    correct: 1,
+    explain: "التصنيف: ≤٦ منخفض · ٧–٨ متوسط · ≥٩ مرتفع. الحدود الدقيقة مهمة لتحديد مستوى المراقبة والتدخل."
+  },
+  {
+    q: "ما القاعدة الذهبية في استخدام المقاييس السريرية؟",
+    opts: ["الدرجة وحدها تكفي لاتخاذ القرار", "لا تسأل إلا إذا طلب المريض", "المقياس أداة مساعدة والحكم السريري لا يُستغنى عنه", "PSS-3 كافٍ ولا حاجة لـ SIS-MAP دائماً"],
+    correct: 2,
+    explain: "المقاييس توجِّه الحكم لا تحل محله. الحدس السريري الموثَّق جزء أصيل من التقييم الاحترافي."
+  }
+];
+
+const SHAPES = ['▲', '◆', '●', '■'];
+const COLORS = ['--a', '--b', '--c', '--d'];
+const CLASS  = ['btn-a', 'btn-b', 'btn-c', 'btn-d'];
+
+let cur = 0, score = 0, timer = null, timeLeft = 20, answered = false;
+let correct_count = 0, wrong_count = 0, skipped_count = 0;
+
+// ── PARTICLES ──
+function makeParticles() {
+  const c = document.getElementById('particles');
+  const cols = ['#e2b04a33','#3498db22','#9b59b622','#2ecc7122'];
+  for (let i = 0; i < 20; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const s = 8 + Math.random() * 24;
+    p.style.cssText = `width:${s}px;height:${s}px;left:${Math.random()*100}%;
+      background:${cols[i%4]};
+      animation-duration:${10+Math.random()*20}s;
+      animation-delay:-${Math.random()*20}s;`;
+    c.appendChild(p);
+  }
+}
+makeParticles();
+
+// ── DOTS ──
+function buildDots() {
+  const c = document.getElementById('qDots');
+  c.innerHTML = '';
+  QUESTIONS.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'q-dot' + (i < cur ? ' done' : i === cur ? ' current' : '');
+    c.appendChild(d);
+  });
+}
+
+// ── TIMER ──
+const CIRCUMFERENCE = 125.66;
+function startTimer() {
+  timeLeft = 20;
+  answered = false;
+  updateTimerUI();
+  timer = setInterval(() => {
+    timeLeft--;
+    updateTimerUI();
+    if (timeLeft <= 0) { clearInterval(timer); timeExpired(); }
+  }, 1000);
+}
+function updateTimerUI() {
+  const n = document.getElementById('timerNum');
+  const fg = document.getElementById('timerCircle');
+  n.textContent = timeLeft;
+  const offset = CIRCUMFERENCE * (1 - timeLeft / 20);
+  fg.style.strokeDashoffset = offset;
+  if (timeLeft <= 5) {
+    n.style.color = '#e74c3c';
+    fg.style.stroke = '#e74c3c';
+  } else if (timeLeft <= 10) {
+    n.style.color = '#e67e22';
+    fg.style.stroke = '#e67e22';
+  } else {
+    n.style.color = '#fff';
+    fg.style.stroke = 'var(--amber2)';
+  }
+}
+
+// ── RENDER QUESTION ──
+function renderQ() {
+  const q = QUESTIONS[cur];
+  document.getElementById('qNumTag').textContent = `السؤال ${toArabic(cur+1)} من ${toArabic(QUESTIONS.length)}`;
+  document.getElementById('qText').textContent = q.q;
+
+  const grid = document.getElementById('answersGrid');
+  grid.innerHTML = '';
+  q.opts.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = `ans-btn ${CLASS[i]}`;
+    btn.innerHTML = `<div class="shape">${SHAPES[i]}</div><div class="ans-text">${opt}</div>`;
+    btn.onclick = () => selectAnswer(i, btn);
+    grid.appendChild(btn);
+  });
+
+  buildDots();
+  startTimer();
+}
+
+function toArabic(n) {
+  return n.toString().replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+}
+
+// ── SELECT ANSWER ──
+function selectAnswer(idx, btn) {
+  if (answered) return;
+  answered = true;
+  clearInterval(timer);
+
+  const q = QUESTIONS[cur];
+  const isCorrect = idx === q.correct;
+  const pts = isCorrect ? Math.round(500 + (timeLeft / 20) * 500) : 0;
+
+  if (isCorrect) {
+    correct_count++;
+    score += pts;
+    btn.classList.add('correct');
+    updateScore();
+  } else {
+    wrong_count++;
+    btn.classList.add('wrong');
+  }
+
+  // Reveal correct
+  const btns = document.querySelectorAll('.ans-btn');
+  btns.forEach((b, i) => {
+    if (i === q.correct && i !== idx) b.classList.add('reveal-correct');
+    if (i !== q.correct && i !== idx) b.classList.add('wrong');
+    b.style.pointerEvents = 'none';
+  });
+
+  // Show result overlay
+  setTimeout(() => showResult(isCorrect, pts, q.explain), 600);
+}
+
+function timeExpired() {
+  if (answered) return;
+  answered = true;
+  skipped_count++;
+  const q = QUESTIONS[cur];
+  const btns = document.querySelectorAll('.ans-btn');
+  btns.forEach((b, i) => {
+    b.style.pointerEvents = 'none';
+    if (i === q.correct) b.classList.add('reveal-correct');
+    else b.classList.add('wrong');
+  });
+  setTimeout(() => showResult(false, 0, q.explain, true), 600);
+}
+
+// ── RESULT OVERLAY ──
+function showResult(correct, pts, explain, timeout = false) {
+  const overlay = document.createElement('div');
+  overlay.className = 'result-overlay';
+
+  const emoji = correct ? ['🎯','🔥','⚡','🌟','✨'][Math.floor(Math.random()*5)] : (timeout ? '⏰' : '❌');
+  const label = correct ? 'إجابة صحيحة!' : (timeout ? 'انتهى الوقت!' : 'إجابة خاطئة');
+  const lcolor = correct ? 'var(--green)' : 'var(--red)';
+  const pText = correct ? `+${pts} نقطة` : 'لا نقاط';
+
+  overlay.innerHTML = `
+    <div class="result-card">
+      <span class="result-emoji">${emoji}</span>
+      <div class="result-label" style="color:${lcolor}">${label}</div>
+      <div class="result-points">${pText}</div>
+      <div class="result-explain"><strong>التوضيح السريري:</strong>${explain}</div>
+      <button class="btn-next" onclick="nextQuestion()">${cur < QUESTIONS.length-1 ? 'السؤال التالي ←' : '🏁 النتيجة النهائية'}</button>
+    </div>`;
+
+  document.body.appendChild(overlay);
+
+  if (correct) {
+    confetti();
+  }
+}
+
+function updateScore() {
+  const badge = document.getElementById('scoreBadge');
+  badge.textContent = toArabic(score) + ' نقطة';
+  badge.classList.add('bump');
+  setTimeout(() => badge.classList.remove('bump'), 400);
+}
+
+// ── NEXT ──
+function nextQuestion() {
+  const overlay = document.querySelector('.result-overlay');
+  if (overlay) overlay.remove();
+  cur++;
+  if (cur >= QUESTIONS.length) { showFinal(); return; }
+  renderQ();
+}
+
+// ── FINAL ──
+function showFinal() {
+  show('final');
+  document.getElementById('finalScore').textContent = toArabic(score);
+
+  const pct = Math.round(correct_count / QUESTIONS.length * 100);
+  let msg = '';
+  if (pct >= 90) msg = 'ممتاز — ممارس جاهز تماماً! 🌟';
+  else if (pct >= 70) msg = 'جيد جداً — بعض المراجعة مفيدة';
+  else if (pct >= 50) msg = 'مقبول — راجع المحاور الأساسية';
+  else msg = 'تحتاج مراجعة شاملة للبروتوكول';
+  document.getElementById('finalSub').textContent = msg;
+
+  const bars = document.getElementById('finalBars');
+  bars.innerHTML = `
+    <div class="fb-row">
+      <div class="fb-label">إجابات صحيحة</div>
+      <div class="fb-track"><div class="fb-fill" style="width:${correct_count/QUESTIONS.length*100}%;background:var(--green)"></div></div>
+      <div class="fb-val" style="color:var(--green)">${toArabic(correct_count)}</div>
+    </div>
+    <div class="fb-row">
+      <div class="fb-label">إجابات خاطئة</div>
+      <div class="fb-track"><div class="fb-fill" style="width:${wrong_count/QUESTIONS.length*100}%;background:var(--red)"></div></div>
+      <div class="fb-val" style="color:var(--red)">${toArabic(wrong_count)}</div>
+    </div>
+    <div class="fb-row">
+      <div class="fb-label">انتهى الوقت</div>
+      <div class="fb-track"><div class="fb-fill" style="width:${skipped_count/QUESTIONS.length*100}%;background:var(--gray)"></div></div>
+      <div class="fb-val" style="color:var(--gray)">${toArabic(skipped_count)}</div>
+    </div>
+    <div class="fb-row" style="margin-top:0.4rem;border-top:1px solid rgba(255,255,255,0.08);padding-top:0.6rem;">
+      <div class="fb-label">النسبة المئوية</div>
+      <div class="fb-track"><div class="fb-fill" style="width:${pct}%;background:linear-gradient(90deg,var(--amber),var(--orange))"></div></div>
+      <div class="fb-val" style="color:var(--amber)">${toArabic(pct)}%</div>
+    </div>`;
+
+  if (pct >= 70) fullConfetti();
+}
+
+// ── CONFETTI ──
+function confetti() {
+  const colors = ['#e2b04a','#2ecc71','#3498db','#9b59b6','#e74c3c'];
+  for (let i = 0; i < 12; i++) {
+    const p = document.createElement('div');
+    p.className = 'confetti-piece';
+    p.style.cssText = `left:${30+Math.random()*40}%;
+      background:${colors[i%5]};
+      animation-duration:${0.8+Math.random()*0.6}s;
+      animation-delay:${Math.random()*0.3}s;
+      border-radius:${Math.random()>0.5?'50%':'2px'};`;
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 1500);
+  }
+}
+function fullConfetti() {
+  const colors = ['#e2b04a','#2ecc71','#3498db','#9b59b6','#e74c3c','#f5c842'];
+  for (let i = 0; i < 60; i++) {
+    setTimeout(() => {
+      const p = document.createElement('div');
+      p.className = 'confetti-piece';
+      p.style.cssText = `left:${Math.random()*100}%;
+        background:${colors[i%6]};
+        animation-duration:${1.2+Math.random()}s;
+        animation-delay:${Math.random()*0.5}s;
+        border-radius:${Math.random()>0.5?'50%':'2px'};
+        width:${6+Math.random()*8}px;height:${6+Math.random()*8}px;`;
+      document.body.appendChild(p);
+      setTimeout(() => p.remove(), 2500);
+    }, i * 30);
+  }
+}
+
+// ── FLOW ──
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function startCountdown() {
+  show('countdown');
+  let n = 3;
+  const el = document.getElementById('cdNum');
+  const tick = () => {
+    el.style.animation = 'none';
+    el.offsetHeight;
+    el.style.animation = 'popIn 0.4s cubic-bezier(0.175,0.885,0.32,1.275)';
+    el.textContent = n > 0 ? n : '🚀';
+    if (n-- > 0) setTimeout(tick, 900);
+    else setTimeout(() => { show('quiz'); renderQ(); }, 800);
+  };
+  tick();
+}
+
+function restart() {
+  cur = 0; score = 0; correct_count = 0; wrong_count = 0; skipped_count = 0;
+  show('intro');
+}
+</script>
+</body>
+</html>
